@@ -1,14 +1,14 @@
 # Fused Quantized-KV Attention Kernel
 
-Custom CUDA kernel that fuses INT8 KV-cache dequantization with FlashAttention-style tiled attention on A100 GPUs.
+Custom CUDA kernel that fuses INT8 KV-cache dequantization with FlashAttention-style tiled decode attention on A100 GPUs.
 
 ## Claim
 
-> KV-cache를 per-token symmetric INT8로 저장하고 attention kernel 내부에서 fused dequant하면, FP16 baseline 대비 decode attention의 HBM traffic이 줄고 latency가 개선된다.
+> Storing KV-cache in per-token symmetric INT8 and performing fused dequantization inside the attention kernel reduces HBM traffic and improves latency for decode attention compared to the FP16 baseline.
 
 ## Why
 
-LLM inference에서 KV-cache는 메모리 병목의 주범이다. Decode attention (`S_q=1`)은 memory-bound이므로, KV를 INT8로 저장하면 HBM→SM 전송량이 절반으로 줄어 직접적인 latency 감소로 이어진다. 추가로 shared memory 사용량 감소 (48.4%)로 double buffering이 가능해져 compute-memory overlap이 개선된다.
+KV-cache is the primary memory bottleneck in LLM inference. Decode attention (`S_q=1`) is memory-bound, so storing KV in INT8 halves the HBM→SM transfer volume, directly reducing latency. Additionally, the ~48% reduction in shared memory usage enables double buffering, which improves compute-memory overlap.
 
 ## Key Idea
 
@@ -16,9 +16,9 @@ LLM inference에서 KV-cache는 메모리 병목의 주범이다. Decode attenti
 HBM (INT8 KV) → Shared Memory (INT8) → Registers (INT8→FP16 dequant + scale) → FP16 Tensor Core mma
 ```
 
-- **Storage:** K, V를 per-token symmetric INT8로 quantize하여 HBM에 저장
-- **Compute:** Kernel 내부에서 register-level dequant → FP16 Tensor Core mma (`hmma.m16n8k16`)
-- **Benefit:** HBM read 감소 + smem 절감 → double buffering 가능 (FP16은 불가)
+- **Storage:** K, V quantized to per-token symmetric INT8 and stored in HBM
+- **Compute:** Register-level dequantization inside the kernel → FP16 Tensor Core mma (`hmma.m16n8k16`)
+- **Benefit:** Reduced HBM read + smaller smem footprint → double buffering possible (not possible with FP16)
 
 ## Target Hardware
 
@@ -27,7 +27,7 @@ HBM (INT8 KV) → Shared Memory (INT8) → Registers (INT8→FP16 dequant + scal
 | GPU | A100 SXM 80GB |
 | Compute Capability | 8.0 |
 | HBM2e Bandwidth | 2,039 GB/s |
-| Shared Memory / SM | 최대 164 KB |
+| Shared Memory / SM | Up to 164 KB |
 | FP16 Tensor Core | 312 TFLOPS |
 
 ## Experiment Setup
@@ -47,7 +47,7 @@ HBM (INT8 KV) → Shared Memory (INT8) → Registers (INT8→FP16 dequant + scal
 
 ## Results
 
-> TODO: 실험 완료 후 업데이트
+> TODO: Update after experiments
 
 ### Correctness
 
@@ -57,11 +57,11 @@ HBM (INT8 KV) → Shared Memory (INT8) → Registers (INT8→FP16 dequant + scal
 
 ### Latency & HBM Traffic
 
-> TODO: 그래프 추가
+> TODO: Add graphs
 
 ### NCU Analysis
 
-> TODO: 프로파일링 결과 추가
+> TODO: Add profiling results
 
 ## Project Structure
 
@@ -103,6 +103,7 @@ Requires: CUDA Toolkit 12.x, Python 3.10+, PyTorch 2.x
 ## Related Work
 
 - [flashattn-cuda-metal](https://github.com/Bias92/flashattn-cuda-metal) — FlashAttention CUDA/Metal cross-platform implementation & profiling
+- [sdpa-attention-benchmark](https://github.com/Bias92/sdpa-attention-benchmark) — Benchmark PyTorch SDPA backends (math vs flash) on RTX 4060 Ti
 - Dao et al., "FlashAttention" (NeurIPS 2022)
 - Hooper et al., "KVQuant" (NeurIPS 2024)
 
