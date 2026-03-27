@@ -1,0 +1,41 @@
+# Build
+build/
+*.o
+*.so
+*.a
+
+# CUDA
+*.cubin
+*.fatbin
+*.ptx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+*.egg
+
+# NCU profiles (too large for git, store locally)
+profiles/*.ncu-rep
+profiles/*.nsys-rep
+
+# Benchmark results (keep CSVs, ignore large files)
+bench/results/*.png
+bench/results/*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual env
+venv/
+.env
