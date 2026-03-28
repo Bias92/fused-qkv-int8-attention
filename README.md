@@ -1,4 +1,4 @@
-# Fused Quantized-KV Attention Kernel
+# Fused Quantized-KV Attention Kernel ( In-Comming , This project is on-going project)
 
 Custom CUDA kernel that fuses INT8 KV-cache dequantization with FlashAttention-style tiled decode attention on A100 GPUs.
 
